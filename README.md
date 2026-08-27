@@ -1,2 +1,1 @@
-# telegram_weatherbot
-Telegram-бот на Python для получения погоды через OpenWeatherMap
+# Telegram-бот погоды\n\nБот на Python с использованием python-telegram-bot.\n\n## Возможности\n\n- Сообщения со словом «погода» запрашивают текущую погоду в указанном городе.\n- Ответ содержит город, температуру, ощущаемую температуру и описание на русском языке.\n- Для неизвестного города бот возвращает вежливое сообщение.\n- Для остальных сообщений бот показывает подсказку.\n\n## Запуск\n\nНужны секреты BOT_TOKEN и WEATHER_KEY.\n\n```bash\npip install -r bot/requirements.txt\npython bot/main.py\n```\n\nПодробная инструкция по публикации в GitHub и деплою на Render находится в DEPLOY_RENDER_GITHUB.md.\n
