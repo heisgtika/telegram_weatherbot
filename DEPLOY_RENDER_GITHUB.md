@@ -11,7 +11,7 @@ Telegram.
 
 - `bot/main.py` — код бота;
 - `bot/requirements.txt` — зависимость `python-telegram-bot`;
-- `render.yaml` — конфигурация Render Blueprint;
+- `render.yaml` — готовые настройки Render для Background Worker;
 - `.gitignore` — исключение секретов и Python-кэша.
 
 Секреты не записываются в код и не должны попадать в GitHub:
@@ -100,44 +100,106 @@ git diff --cached --name-only
 В списке не должно быть `.env`, файлов с токенами и локальных виртуальных
 окружений.
 
-## 5. Подключите GitHub-репозиторий к Render
+## 5. Создайте Worker в текущем интерфейсе Render
 
-1. Откройте [Render Dashboard](https://dashboard.render.com/).
-2. Нажмите **New → Blueprint**.
-3. Подключите GitHub, если Render ещё не получил доступ к репозиторию.
-4. Выберите репозиторий с ботом.
-5. Render найдёт файл `render.yaml`.
-6. Проверьте, что создаётся сервис типа **Background Worker**.
-7. Нажмите **Apply** или **Create Blueprint**.
+На экране **Create a new Service**, который показан на вашем скриншоте, не
+нужно искать Blueprint. Выберите:
 
-Конфигурация из `render.yaml` устанавливает зависимости командой:
+**Background Workers → New Worker**
+
+Это правильный тип сервиса для Telegram-бота с long polling. Не выбирайте
+**Static Sites**, **Web Services**, **Private Services**, **Cron Jobs** или
+**Workflow**.
+
+## 6. Подключите GitHub в Render
+
+После нажатия **New Worker** Render откроет настройку источника кода.
+
+1. В качестве источника выберите **GitHub**.
+2. Нажмите **Connect GitHub** или **Configure GitHub App**, если Render
+   показывает такую кнопку.
+3. В окне GitHub подтвердите установку приложения Render.
+4. Выберите аккаунт `heisgtika`.
+5. Разрешите доступ к репозиторию
+   `heisgtika/telegram_weatherbot`.
+6. Вернитесь в Render.
+7. В списке репозиториев найдите и выберите
+   `heisgtika/telegram_weatherbot`.
+8. В качестве ветки выберите `main`.
+
+Если репозитория нет в списке, откройте в Render настройку GitHub-доступа и
+выберите **All repositories** либо добавьте именно
+`telegram_weatherbot` в список разрешённых репозиториев. После изменения
+разрешений обновите страницу Render.
+
+## 7. Заполните настройки Background Worker
+
+Укажите следующие значения:
+
+| Поле Render | Значение |
+| --- | --- |
+| Name | `telegram-weather-bot` |
+| Region | любой регион, предпочтительно ближайший к пользователям |
+| Branch | `main` |
+| Root Directory | оставить пустым |
+| Runtime | `Python 3` |
+| Build Command | `pip install -r bot/requirements.txt` |
+| Start Command | `python bot/main.py` |
+| Plan | `Free`, если он доступен в вашем аккаунте |
+
+Для этого процесса не нужен порт, домен, health check или HTTP-сервер. Именно
+поэтому выбирается Background Worker.
+
+Конфигурация из `render.yaml` соответствует этим настройкам, но при создании
+Worker через показанный интерфейс значения нужно указать в форме вручную.
+Blueprint для этого шага не требуется.
+
+## 8. Добавьте переменные окружения
+
+До первого запуска откройте блок **Environment Variables** и добавьте:
+
+| Name | Value |
+| --- | --- |
+| `BOT_TOKEN` | действующий токен из `@BotFather` |
+| `WEATHER_KEY` | API-ключ OpenWeatherMap |
+
+Нажмите **Add Environment Variable** для каждой переменной. Затем сохраните
+настройки.
+
+Не вставляйте ключи в Build Command, Start Command, GitHub или `render.yaml`.
+Поля со значениями секретов не нужно добавлять в GitHub.
+
+## 9. Запустите деплой
+
+1. Проверьте, что выбран репозиторий
+   `heisgtika/telegram_weatherbot`.
+2. Проверьте ветку `main`.
+3. Проверьте команды:
+
+   ```bash
+   pip install -r bot/requirements.txt
+   python bot/main.py
+   ```
+
+4. Убедитесь, что добавлены `BOT_TOKEN` и `WEATHER_KEY`.
+5. Нажмите **Create Background Worker**, **Deploy Worker** или аналогичную
+   кнопку внизу формы.
+6. Откройте вкладку **Events** и дождитесь успешной сборки.
+7. Откройте вкладку **Logs**.
+
+Сборка установит зависимости командой:
 
 ```bash
 pip install -r bot/requirements.txt
 ```
 
-и запускает процесс командой:
+После сборки Render запустит процесс:
 
 ```bash
 python bot/main.py
 ```
 
-## 6. Добавьте секреты в Render
-
-В настройках созданного Worker откройте **Environment → Environment
-Variables** и добавьте:
-
-| Name | Value |
-| --- | --- |
-| `BOT_TOKEN` | токен из `@BotFather` |
-| `WEATHER_KEY` | API-ключ OpenWeatherMap |
-
-Нажмите **Save Changes**. После сохранения Render перезапустит Worker.
-
-Не добавляйте секреты в `render.yaml`: записи `sync: false` специально означают,
-что Render должен запросить их безопасно при создании или настройке сервиса.
-
-## 7. Проверьте деплой
+## 10. Проверьте деплой
 
 Откройте вкладку **Logs** у Worker. Успешный запуск должен закончиться
 сообщением:
@@ -165,7 +227,7 @@ Variables** и добавьте:
 - `Привет` — бот покажет подсказку по использованию;
 - `Погода` — бот попросит указать город.
 
-## 8. Автоматические обновления
+## 11. Включите автоматический деплой
 
 После первого деплоя Render будет отслеживать выбранную ветку GitHub. Для
 обновления бота:
@@ -181,7 +243,7 @@ Render автоматически соберёт новую версию и пе
 Если автоматический деплой отключён, откройте Render → Worker → **Manual
 Deploy → Deploy latest commit**.
 
-## 9. Частые проблемы
+## 12. Частые проблемы
 
 ### `BOT_TOKEN is not set` или `WEATHER_KEY is not set`
 
@@ -212,7 +274,7 @@ Deploy → Deploy latest commit**.
 запуск двух копий с одним токеном может привести к конфликту получения
 обновлений Telegram.
 
-## 10. Итоговая схема
+## 13. Итоговая схема
 
 ```text
 GitHub (исходный код)
